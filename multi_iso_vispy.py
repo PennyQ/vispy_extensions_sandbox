@@ -48,7 +48,7 @@ ISO_SNIPPETS = dict(
             
             dst = $cmap(val);  // this will call colormap function if have
             dst = calculateColor(dst, loc, dstep);
-            dst.a = 1. * (1.0 - i/float(level)); # transparency
+            dst.a = 1. * (1.0 - i/float(level)); // transparency
             
             src = total_color;
             
