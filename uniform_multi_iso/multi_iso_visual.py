@@ -42,9 +42,10 @@ from vispy.visuals.volume import VolumeVisual, Visual
 from vispy.scene.visuals import create_visual_node
 
 import numpy as np
-from vispy.visuals.volume import VERT_SHADER
+from vispy.visuals.volume import VERT_SHADER, frag_dict
 from vispy.color import get_colormap
-# Vertex shader
+
+# TODO: find a way to add a uniform variable instead of rewriting the whole shader code
 
 # Fragment shader
 FRAG_SHADER = """
@@ -179,16 +180,7 @@ void main() {{
     //gl_FragColor = vec4(0.0, nsteps / 3.0 / u_shape.x, 1.0, 1.0);
     //return;
 
-    // before loop
-    vec4 total_color = vec4(0.0);  // final color
-    vec4 src = vec4(0.0);
-    vec4 dst = vec4(0.0);
-    vec3 dstep = 1.5 / u_shape;  // step to sample derivative
-    gl_FragColor = vec4(0.0);
-    float val_prev = 0.;
-    float outa = 0;
-    vec3 loc_prev = vec3(0.0);
-    vec3 loc_mid = vec3(0.0);
+    {before_loop}
 
     // This outer loop seems necessary on some systems for large
     // datasets. Ugly, but it works ...
@@ -201,42 +193,13 @@ void main() {{
             vec4 color = $sample(u_volumetex, loc);
             float val = color.g;
 
-            // in loop
-            for (int i=0; i<level; i++){{
-                // render from outside to inside
-                if (val < u_threshold*(1.0-i/float(level)) && val_prev > u_threshold*(1.0-i/float(level))){
-                    // Use bisection to find correct position of contour
-                    for (int i=0; i<20; i++) {{
-                        loc_mid = 0.5 * (loc_prev + loc);
-                        val = $sample(u_volumetex, loc_mid).g;
-                        if (val < u_threshold) {
-                            loc = loc_mid;
-                        } else {
-                            loc_prev = loc_mid;
-                        }
-                    }}
-
-                    dst = $cmap(val);  // this will call colormap function if have
-                    dst = calculateColor(dst, loc, dstep);
-                    dst.a = 1. * (1.0 - i/float(level)); // transparency
-
-                    src = total_color;
-
-                    outa = src.a + dst.a * (1 - src.a);
-                    total_color = (src * src.a + dst * dst.a * (1 - src.a)) / outa;
-                    total_color.a = outa;
-                }
-                }}
-                val_prev = val;
-                loc_prev = loc;
-
+            {in_loop}
 
             // Advance location deeper into the volume
             loc += step;
         }}
     }}
-    // after loop
-    gl_FragColor = total_color;
+    {after_loop}
 
     /* Set depth value - from visvis TODO
     int iter_depth = int(maxi);
@@ -251,6 +214,57 @@ void main() {{
 }}
 """  # noqa
 
+ISO_SNIPPETS = dict(
+    before_loop="""
+        vec4 total_color = vec4(0.0);  // final color
+        vec4 src = vec4(0.0);
+        vec4 dst = vec4(0.0);
+        vec3 dstep = 1.5 / u_shape;  // step to sample derivative
+        gl_FragColor = vec4(0.0);
+        float val_prev = 0;
+        float outa = 0;
+        vec3 loc_prev = vec3(0.0);
+        vec3 loc_mid = vec3(0.0);
+
+    """,
+    in_loop="""
+        for (int i=0; i<level; i++){
+
+        // render from outside to inside
+        if (val < u_threshold*(1.0-i/float(level)) && val_prev > u_threshold*(1.0-i/float(level))){
+            // Use bisection to find correct position of contour
+            for (int i=0; i<20; i++) {
+                loc_mid = 0.5 * (loc_prev + loc);
+                val = $sample(u_volumetex, loc_mid).g;
+                if (val < u_threshold) {
+                    loc = loc_mid;
+                } else {
+                    loc_prev = loc_mid;
+                }
+            }
+
+            dst = $cmap(val);  // this will call colormap function if have
+            dst = calculateColor(dst, loc, dstep);
+            dst.a = 1. * (1.0 - i/float(level)); // transparency
+
+            src = total_color;
+
+            outa = src.a + dst.a * (1 - src.a);
+            total_color = (src * src.a + dst * dst.a * (1 - src.a)) / outa;
+            total_color.a = outa;
+        }
+        }
+        val_prev = val;
+        loc_prev = loc;
+        """,
+    after_loop="""
+        gl_FragColor = total_color;
+        """,
+)
+
+ISO_FRAG_SHADER = FRAG_SHADER.format(**ISO_SNIPPETS)
+
+frag_dict['iso'] = ISO_FRAG_SHADER
 
 class MultiIsoVisual(VolumeVisual):
     """
