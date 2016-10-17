@@ -25,7 +25,7 @@ from vispy.color import BaseColormap
 class TransGrays(BaseColormap):
     glsl_map = """
     vec4 translucent_grays(float t) {
-        return vec4(t, t, t, t*0.05);
+        return vec4(t*0.6, t, t, t*0.05);
     }
     """
 
@@ -40,10 +40,9 @@ class TransGrays(BaseColormap):
         # The contrast limits. The values in the volume are mapped to
         # black and white corresponding to these values.
 '''
-surface = MultiIsoVisual(data, parent=view.scene, threshold=0.8, step=2, cmap=TransGrays(),
+surface = MultiIsoVisual(data, parent=view.scene, threshold=0.8, step=3, cmap=TransGrays(),
                          relative_step_size=0.5, emulate_texture=True)
-# bind uniforms
-
+surface.step = 4
 # surface.set_gl_state('translucent', cull_face=False)
 
 # Add a 3D axis to keep us oriented
