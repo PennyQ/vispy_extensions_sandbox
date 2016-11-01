@@ -243,7 +243,9 @@ ISO_SNIPPETS = dict(
                 }
             }
 
-            dst = $cmap(val);  // this will call colormap function if have
+            //dst = $cmap(val);  // this will call colormap function if have
+            dst = $cmap(i);
+
             dst = calculateColor(dst, loc, dstep);
             dst.a = 1. * (1.0 - i/float(level)); // transparency
 
@@ -336,7 +338,20 @@ class MultiIsoVisual(VolumeVisual):
         self.method = 'iso'
         self.relative_step_size = relative_step_size
         self.threshold = threshold if (threshold is not None) else vol.mean()
+        self.step = step
         self.freeze()
 
+    @property
+    def step(self):
+        return self._step
 
+    @step.setter
+    def step(self, value):
+        self._step = int(value)
+        if 'level' in self.shared_program:
+            self.unfreeze()
+            self.shared_program['level'] = self._step
+            self.freeze()
+        self.update()
+        
 MultiIsoVisual = create_visual_node(MultiIsoVisual)
