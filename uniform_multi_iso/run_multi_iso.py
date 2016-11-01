@@ -23,19 +23,7 @@ from scipy.ndimage import gaussian_filter
 
 data = gaussian_filter(data, 1)
 
-
 from vispy.color import BaseColormap
-class TransGrays(BaseColormap):
-    glsl_map = """
-    vec4 translucent_grays(int l) {
-        if (l == 1)
-            {return vec4(222./255.,	235./255., 247./255., 1.);}
-        if (l == 2)
-            {return vec4(158./255., 202./255., 225./255., 1.);}
-        if (l == 3)
-            {return vec4(49./255., 130./255., 189./255., 1.);}
-    }
-    """
 
 
 def get_color():
@@ -45,7 +33,7 @@ def get_color():
 
     # TODO: 4.0 here will be replaced by level, 'Blues' will be replaced by chosen color in dropdown list
     # select specific data series
-    mask = df['ColorName'].isin(['Blues']) & df['NumOfColors'].isin([4.0]) & df['Type'].isin(['seq'])
+    mask = df['ColorName'].isin(['Blues']) & df['NumOfColors'].isin([4]) & df['Type'].isin(['seq'])
     sel = df[mask]
     index = sel.index[0] # int
     df_rgb = df.loc[range(index, index+int(4.0), 1)]
@@ -57,11 +45,15 @@ def get_color():
     color[:, 2] = np.array(df_rgb['B'])
     color[:, 3] = 255.0
     color /= 255.
-    return color.tolist()
+    global COLOR_BREWER
+    COLOR_BREWER = color.tolist()
+    # return color.tolist()
+
+get_color()
 
 
 class Brewer(BaseColormap):
-    colors = get_color()
+    colors = COLOR_BREWER
 
     # Use $color_0 to refer to the first color in `colors`, and so on. These are vec4 vectors.
     glsl_map = """
@@ -88,10 +80,10 @@ class Brewer(BaseColormap):
         # The contrast limits. The values in the volume are mapped to
         # black and white corresponding to these values.
 '''
-surface = MultiIsoVisual(data, parent=view.scene, threshold=0.8, step=3, cmap=Brewer(),
+surface = MultiIsoVisual(data, parent=view.scene, threshold=0.8, step=2,
                          relative_step_size=0.5, emulate_texture=True)
 # surface.step = 3
-
+surface.cmap=Brewer()
 # get color depends on step
 
 
