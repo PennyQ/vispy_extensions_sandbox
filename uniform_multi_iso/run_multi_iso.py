@@ -66,20 +66,15 @@ class Brewer(BaseColormap):
     # Use $color_0 to refer to the first color in `colors`, and so on. These are vec4 vectors.
     glsl_map = """
     vec4 translucent_grays(int l) {
-        if (l == 3)
+        if (l == 1)
             {return $color_0;}
-        if (l == 4)
+        if (l == 2)
             {return $color_1;}
-        if (l == 5)
+        if (l == 3)
             {return $color_2;}
-        if (l == 6)
+        if (l == 4)
             {return $color_3;}
-        if (l == 7)
-            {return $color_4;}
-        if (l == 8)
-            {return $color_5;}
-        if (l == 9)
-            {return $color_6;}
+
     }
     """
 
